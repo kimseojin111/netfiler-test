@@ -95,20 +95,19 @@ static int check_pkt(struct nfq_data *tb){
 	// data_idx += tcp_header->th_off * 4;
 	
 	if (ip_header->ip_p == TCP_PROTOCOL){
-		if(ntohs(tcp_header->th_dport) == http_port ){
-			unsigned char* http_header = (data+tcp_header->th_off * 4);
-			if(is_http_packet(http_header)){
-				if (strstr(http_header,host)!=NULL){
-					printf("!!dangerous site filtered!!!\n");
-					return 0;
-				}
-				
+		if(ntohs(tcp_header->th_dport) == http_port){
+			char* http_header = (data+tcp_header->th_off * 4);
+			int check_http_packet = (strncmp((const char *)http_header, "GET ", 4) != 0) && (strncmp((const char *)http_header, "POST", 4) != 0) && (strncmp((const char *)http_header, "PUT", 3) != 0) && (strncmp((const char *)http_header, "DELETE", 5) != 0) ;
+			if(check_http_packet) return flag;
+			if (strstr(http_header,host)!=NULL){
+				printf("report!!!!!!!!!!!!!!!!!11\n");
+				return 0;
 			}
 
 		}
 	
 	}
-	return drop_check;
+	return flag;
 }
 
 static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
