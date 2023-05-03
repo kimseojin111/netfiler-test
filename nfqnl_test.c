@@ -5,9 +5,15 @@
 #include <linux/types.h>
 #include <linux/netfilter.h>		/* for NF_ACCEPT */
 #include <errno.h>
-#include <string>
+#include <string.h>
+#include <stdbool.h> // bool
+#include "libnet-headers.h"
 
 #include <libnetfilter_queue/libnetfilter_queue.h>
+
+
+char* host;
+using namespace std; 
 
 /* returns packet id */
 static u_int32_t print_pkt (struct nfq_data *tb)
@@ -65,24 +71,73 @@ static u_int32_t print_pkt (struct nfq_data *tb)
 }
 
 
+static int check_pkt(struct nfq_data *tb){
+	//int drop_check=NF_ACCEPT;
+	int flag = 1;
+
+	struct nfqnl_msg_packet_hdr *header;
+	header = nfq_get_msg_packet_hdr(tb);
+	if (ntohs(header->hw_protocol) != ETHERTYPE_IP) return flag; 
+
+	int data_size = 0;
+
+
+	unsigned char *data;
+	int ret = nfq_get_payload(tb, &data);
+	if (ret < 0){
+		printf("payload must >=0 ???\n");
+		return flag; 
+	}
+	
+	struct libnet_ipv4_hdr* ip_header = (struct libnet_ipv4_hdr*)data;
+	int offset = ip_header->ip_hl * 4;
+	struct libnet_tcp_hdr* tcp_header = (struct libnet_tcp_hdr*)(data + offset);
+	// data_idx += tcp_header->th_off * 4;
+	
+	if (ip_header->ip_p == TCP_PROTOCOL){
+		if(ntohs(tcp_header->th_dport) == http_port ){
+			unsigned char* http_header = (data+tcp_header->th_off * 4);
+			if(is_http_packet(http_header)){
+				if (strstr(http_header,host)!=NULL){
+					printf("!!dangerous site filtered!!!\n");
+					return 0;
+				}
+				
+			}
+
+		}
+	
+	}
+	return drop_check;
+}
+
 static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 	      struct nfq_data *nfa, void *data)
 {
 	u_int32_t id = print_pkt(nfa);
 	printf("entering callback\n");
-	return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);
+
+
+	if(check_pkt(nfa)) return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL); 
+	else retrn nfq_set_verdict(qh, id, NF_DROP, 0, NULL);
 }
 
-static int cb2(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
-	      struct nfq_data *nfa, void *data)
-{
-	u_int32_t id = print_pkt(nfa);
-	printf("entering callback\n");
-	return nfq_set_verdict(qh, id, NF_DROP, 0, NULL);
+
+
+void usage() {
+	printf("syntax : netfilter-test <host>\n");
+	printf("sample : netfilter-test test.gilgil.net\n");
 }
+
+
 
 void main(int argc, char **argv)
 {
+	if(argc!=2) {
+		usuage();
+		return ;
+	}
+	host = argv[1];
 	struct nfq_handle *h;
 	struct nfq_q_handle *qh;
 	struct nfnl_handle *nh;
