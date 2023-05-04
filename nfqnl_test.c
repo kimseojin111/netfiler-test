@@ -133,12 +133,14 @@ static int check_pkt(struct nfq_data *tb){
 	//printf("\n\n\n-----------------------------------------------------");
 	dump(http_header, 256);
 
-	char *line = strtok(http_header, "\r\n");
-    printf("First line: %s\n", line);
 	//char *method = strtok(line, " ");
 	//printf("Method : %s\n",method);
-	if ((strncmp(line, "GET", 3)!=0)&&(strncmp(line, "POST", 4)!=0)&&(strncmp(line, "DELETE", 6)!=0)) return 1; 
-	if(strstr(line, malhost)!= NULL) return 0; 
+	if ((strncmp(http_header, "GET", 3)!=0)&&(strncmp(http_header, "POST", 4)!=0)&&(strncmp(http_header, "DELETE", 6)!=0)) return 1; 
+	printf("httpppppppppppppppppppppppppppppppppppppppppppppppppppppp\n");
+	if(strstr(http_header, malhost)!= NULL) {
+		printf("gottttttttttttttttttttttttttt\n");
+		return 0; 
+	}
 	else return 1;
 
 	return flag;
@@ -151,10 +153,9 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 	//printf("entering callback\n");
 
 
-	//if(check_pkt(nfa)) return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL); 
-	//else return nfq_set_verdict(qh, id, NF_DROP, 0, NULL);
-	check_pkt(nfa);
-	return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);
+	if(check_pkt(nfa)) return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL); 
+	else return nfq_set_verdict(qh, id, NF_DROP, 0, NULL);
+
 }
 
 
