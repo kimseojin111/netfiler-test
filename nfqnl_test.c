@@ -141,25 +141,6 @@ static int check_pkt(struct nfq_data *tb){
 	if(strstr(line, malhost)!= NULL) return 0; 
 	else return 1;
 
-	/*
-	struct libnet_ipv4_hdr* ip_header = (struct libnet_ipv4_hdr*)data;
-	int offset = ip_header->ip_hl * 4;
-	struct libnet_tcp_hdr* tcp_header = (struct libnet_tcp_hdr*)(data + offset);
-	// data_idx += tcp_header->th_off * 4;
-	
-	if (ip_header->ip_p == TCP_PROTOCOL){
-		if(ntohs(tcp_header->th_dport) == http_port){
-			char* http_header = (data+tcp_header->th_off * 4);
-			int check_http_packet = (strncmp((const char *)http_header, "GET ", 4) != 0) && (strncmp((const char *)http_header, "POST", 4) != 0) && (strncmp((const char *)http_header, "PUT", 3) != 0) && (strncmp((const char *)http_header, "DELETE", 5) != 0) ;
-			if(check_http_packet) return flag;
-			if (strstr(http_header,host)!=NULL){
-				printf("report!!!!!!!!!!!!!!!!!11\n");
-				return 0;
-			}
-
-		}
-	
-	}*/
 	return flag;
 }
 
